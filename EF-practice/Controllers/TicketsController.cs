@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using EF_practice.Models;
 
 namespace EF_practice.Controllers
 {
-    public class TicketsController : Controller
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TicketsController : ControllerBase
     {
         private readonly ShowsContext _context;
 
@@ -18,150 +20,118 @@ namespace EF_practice.Controllers
             _context = context;
         }
 
-        // GET: Tickets
-        public async Task<IActionResult> Index()
+        // GET: api/Tickets
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Ticket>>> GetTickets()
         {
-            var showsContext = _context.Tickets.Include(t => t.IdeventNavigation);
-            return View(await showsContext.ToListAsync());
+          if (_context.Tickets == null)
+          {
+              return NotFound();
+          }
+            return await _context.Tickets.ToListAsync();
         }
 
-        // GET: Tickets/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/Tickets/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Ticket>> GetTicket(int id)
         {
-            if (id == null || _context.Tickets == null)
-            {
-                return NotFound();
-            }
-
-            var ticket = await _context.Tickets
-                .Include(t => t.IdeventNavigation)
-                .FirstOrDefaultAsync(m => m.Idticket == id);
-            if (ticket == null)
-            {
-                return NotFound();
-            }
-
-            return View(ticket);
-        }
-
-        // GET: Tickets/Create
-        public IActionResult Create()
-        {
-            ViewData["Idevent"] = new SelectList(_context.Events, "Idevent", "Idevent");
-            return View();
-        }
-
-        // POST: Tickets/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Idticket,Idevent,Price,QuantityAvailable")] Ticket ticket)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(ticket);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["Idevent"] = new SelectList(_context.Events, "Idevent", "Idevent", ticket.Idevent);
-            return View(ticket);
-        }
-
-        // GET: Tickets/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null || _context.Tickets == null)
-            {
-                return NotFound();
-            }
-
+          if (_context.Tickets == null)
+          {
+              return NotFound();
+          }
             var ticket = await _context.Tickets.FindAsync(id);
+
             if (ticket == null)
             {
                 return NotFound();
             }
-            ViewData["Idevent"] = new SelectList(_context.Events, "Idevent", "Idevent", ticket.Idevent);
-            return View(ticket);
+
+            return ticket;
         }
 
-        // POST: Tickets/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Idticket,Idevent,Price,QuantityAvailable")] Ticket ticket)
+        // PUT: api/Tickets/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutTicket(int id, Ticket ticket)
         {
             if (id != ticket.Idticket)
             {
-                return NotFound();
+                return BadRequest();
             }
 
-            if (ModelState.IsValid)
+            _context.Entry(ticket).State = EntityState.Modified;
+
+            try
             {
-                try
-                {
-                    _context.Update(ticket);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TicketExists(ticket.Idticket))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                await _context.SaveChangesAsync();
             }
-            ViewData["Idevent"] = new SelectList(_context.Events, "Idevent", "Idevent", ticket.Idevent);
-            return View(ticket);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!TicketExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
 
-        // GET: Tickets/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // POST: api/Tickets
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Ticket>> PostTicket(Ticket ticket)
         {
-            if (id == null || _context.Tickets == null)
+          if (_context.Tickets == null)
+          {
+              return Problem("Entity set 'ShowsContext.Tickets'  is null.");
+          }
+            _context.Tickets.Add(ticket);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                if (TicketExists(ticket.Idticket))
+                {
+                    return Conflict();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return CreatedAtAction("GetTicket", new { id = ticket.Idticket }, ticket);
+        }
+
+        // DELETE: api/Tickets/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteTicket(int id)
+        {
+            if (_context.Tickets == null)
             {
                 return NotFound();
             }
-
-            var ticket = await _context.Tickets
-                .Include(t => t.IdeventNavigation)
-                .FirstOrDefaultAsync(m => m.Idticket == id);
+            var ticket = await _context.Tickets.FindAsync(id);
             if (ticket == null)
             {
                 return NotFound();
             }
 
-            return View(ticket);
-        }
-
-        // POST: Tickets/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            if (_context.Tickets == null)
-            {
-                return Problem("Entity set 'ShowsContext.Tickets'  is null.");
-            }
-            var ticket = await _context.Tickets.FindAsync(id);
-            if (ticket != null)
-            {
-                _context.Tickets.Remove(ticket);
-            }
-            
+            _context.Tickets.Remove(ticket);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return NoContent();
         }
 
         private bool TicketExists(int id)
         {
-          return (_context.Tickets?.Any(e => e.Idticket == id)).GetValueOrDefault();
+            return (_context.Tickets?.Any(e => e.Idticket == id)).GetValueOrDefault();
         }
     }
 }

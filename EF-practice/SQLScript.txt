@@ -1,0 +1,31 @@
+-- Create the Shows database
+CREATE DATABASE Shows;
+-- Insert 5 rows into the existing datatable Event with columns NameEvent, DateEvent, and PlaceEvent
+INSERT INTO Shows.dbo.Event (IDEvent, NameEvent, DateEvent, PlaceEvent)
+VALUES
+    (1, 'MADONA', NULL, 'Place 1'),
+    (2, 'ARJONA', NULL, 'Place 2'),
+    (3, 'CAMILA', NULL, 'Place 3'),
+    (4, 'HAASH', NULL, 'Place 4'),
+    (5, 'REIK', NULL, 'Place 5');
+-- Create 20 rows for the datatableTickets with 5 distinct numbers for the IDEvent column
+-- Columns: IDTicket (as ID), IDEvent (foreign key), Price (int), QuantityAvailable (int), Available (bit), PlaceNumber (int)
+CREATE TABLE #DistinctEvents (IDEvent INT);
+
+-- Insert 5 distinct IDEvent values into the temporary table
+INSERT INTO #DistinctEvents (IDEvent) VALUES (1), (2), (3), (4), (5);
+
+-- Create 20 rows for datatableTickets with different IDEvent values
+INSERT INTO Shows.dbo.Tickets (IDTicket, IDEvent, Price, QuantityAvailable, Available, PlaceNumber)
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY (SELECT NULL)), -- IDTicket
+    DE.IDEvent, -- IDEvent
+    10, -- Sample values for Price
+    100, -- Sample values for QuantityAvailable
+    1, -- Sample values for Available
+    101 -- Sample values for PlaceNumber
+FROM #DistinctEvents DE
+CROSS JOIN (VALUES (1), (2), (3), (4), (5)) AS X(Number);
+
+-- Drop the temporary table
+DROP TABLE #DistinctEvents;
